@@ -20,7 +20,7 @@ def info():
     return {
         "apiversion": "1",
         "author": "team-WIN",
-        "color": "#97FF3C",
+        "color": "#200ed3",
         "head": "gamer",
         "tail": "bolt"
     }
