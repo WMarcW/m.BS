@@ -20,7 +20,7 @@ def info():
     return {
         "apiversion": "1",
         "author": "team-WIN",
-        "color": "#200ed3",
+        "color": "##d3ca0e",
         "head": "gamer",
         "tail": "bolt"
     }
@@ -53,7 +53,8 @@ def compute_initial_hash(state):
 def move(game_state):
     board = game_state['board']
     you = game_state['you']
-    my_head = you['body'][0]
+    my_snake = next(s for s in board['snakes'] if s['id'] == you['id'])
+    my_head = my_snake['body'][0]
     my_id = you['id']
     my_health = you['health']
     my_length = you['length']
