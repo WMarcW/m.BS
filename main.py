@@ -161,11 +161,14 @@ def evaluate_move_3ply(start_move, game_state, is_move_safe, evaluation_fn, alph
     changes = apply_moves(game_state, move_dict)
 
     if depth == 0:
-        score = evaluation_fn(start_move, game_state['you']['body'][0], game_state, is_move_safe)
+        head = next(s for s in game_state['board']['snakes'] if s['id'] == game_state['you']['id'])['body'][0]
+        score = evaluation_fn(start_move, head, game_state, is_move_safe)
     else:
-       next_safe_moves = [
+        you_snake = next(s for s in game_state['board']['snakes'] if s['id'] == game_state['you']['id'])
+        new_head = you_snake['body'][0]
+        next_safe_moves = [
             m for m in delta
-            if is_move_safe(game_state['you']['body'][0], m, game_state, game_state['you']['id'])
+            if is_move_safe(new_head, m, game_state, you_snake['id'])
     ]
     if not next_safe_moves:
         score = -9999  # Kein sicherer Zug mehr möglich
