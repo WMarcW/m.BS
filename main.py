@@ -156,9 +156,16 @@ def evaluate_move_3ply(start_move, game_state, is_move_safe, evaluation_fn, alph
     if depth == 0:
         score = evaluation_fn(start_move, game_state['you']['body'][0], game_state, is_move_safe)
     else:
+       next_safe_moves = [
+        m for m in delta
+        if is_move_safe(game_state['you']['body'][0], m, game_state, game_state['you']['id'])
+    ]
+    if not next_safe_moves:
+        score = -9999  # Kein sicherer Zug mehr möglich
+    else:
         score = max(
             evaluate_move_3ply(m, game_state, is_move_safe, evaluation_fn, alpha, beta, depth - 1)
-            for m in delta
+            for m in next_safe_moves
         )
 
     undo_moves(game_state, changes)
