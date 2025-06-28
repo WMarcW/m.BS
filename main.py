@@ -73,10 +73,17 @@ def move(game_state):
             "recovery": evaluate_recovery,
             "kill_mode": evaluate_kill_mode
         }[mode]
-        best_move = max(safe_moves, key=lambda m: evaluate_move_3ply(m, game_state, is_safe, eval_fn, -float('inf'), float('inf'), 3))
+        best_val = -float("inf")
+        best_move = None
+        for m in safe_moves:
+            val = evaluate_move_3ply(m, game_state, is_safe, eval_fn, -float("inf"), float("inf"), 3)
+            if val > best_val:
+                best_val = val
+                best_move = m
+
     else:
         best_move = max(safe_moves, key=lambda m: calculate_free_space(apply_delta(my_head, m), game_state)[0])
-
+    print(f"Head: {my_head}, Chosen Move: {best_move}, Mode: {mode}, Safe: {safe_moves}")
     return {"move": best_move}
 
 # === MOVE-UTILS ===
@@ -157,8 +164,8 @@ def evaluate_move_3ply(start_move, game_state, is_move_safe, evaluation_fn, alph
         score = evaluation_fn(start_move, game_state['you']['body'][0], game_state, is_move_safe)
     else:
        next_safe_moves = [
-        m for m in delta
-        if is_move_safe(game_state['you']['body'][0], m, game_state, game_state['you']['id'])
+            m for m in delta
+            if is_move_safe(game_state['you']['body'][0], m, game_state, game_state['you']['id'])
     ]
     if not next_safe_moves:
         score = -9999  # Kein sicherer Zug mehr möglich
