@@ -60,8 +60,20 @@ def move(game_state):
     enemy = next(s for s in board['snakes'] if s['id'] != my_id)
     enemy_length = enemy['length']
 
-    is_safe = {m: is_move_safe(my_head, m, game_state, my_id) for m in delta}
-    safe_moves = [m for m, ok in is_safe.items() if ok]
+    is_safe = {}
+    safe_moves = []
+
+    for m in delta:
+        if not is_move_safe(my_head, m, game_state, my_id):
+            continue
+
+    simulated_head = apply_delta(my_head, m)
+    area, _ = calculate_free_space(simulated_head, game_state)
+
+    if area >= 5:
+        is_safe[m] = True
+        safe_moves.append(m)
+
     if not safe_moves:
         return {"move": "down"}  # fallback
 
