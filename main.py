@@ -215,7 +215,7 @@ def calculate_free_space(start, game_state, limit=50):
             if 0 <= nx < board['width'] and 0 <= ny < board['height'] and (nx, ny) not in occupied and (nx, ny) not in visited:
                 visited.add((nx, ny))
                 queue.append((nx, ny))
-    return count, len(visited)
+    return count, len(visited) if count >= 5 else -9999, 0
 
 def evaluate_aggressive(move, head, game_state, is_safe):
     if not is_safe[move]: return -9999
