@@ -29,17 +29,34 @@ def move(game_state: typing.Dict) -> typing.Dict:
     elif my_length >= enemy['length'] + 2:
         mode = "aggressive"
 
-    # === Determine Safe Moves ===
+       # === Determine Safe Moves ===
     safe_moves = []
     for m, (dx, dy) in delta.items():
         new_x = my_head['x'] + dx
         new_y = my_head['y'] + dy
+
+        # 1. Wand und Körper prüfen
         if not (0 <= new_x < board_width and 0 <= new_y < board_height):
             continue
         if is_occupied(new_x, new_y, board['snakes']):
             continue
-        safe_moves.append(m)
 
+        # 2. Head-on-Head-Kollision prüfen
+        is_risky_head_on = False
+        for other in board['snakes']:
+            if other['id'] == you['id']:
+                continue
+            enemy_head = other['body'][0]
+            if abs(enemy_head['x'] - new_x) + abs(enemy_head['y'] - new_y) == 1:
+                if my_length <= len(other['body']):
+                    is_risky_head_on = True
+                    break
+
+        # 3. Entscheidung: Nur blockieren, wenn Alternativen bleiben
+        if is_risky_head_on:
+            continue
+
+        safe_moves.append(m)
     if not safe_moves:
         return {"move": "up"}  # fallback
 
