@@ -133,8 +133,8 @@ def info() -> typing.Dict:
     return {
         "apiversion": "1",
         "author": "flood-fighter",
-        "color": "#f50000",
-        "head": "snowman",
+        "color": "#69420",
+        "head": "trans-rights-scarf",
         "tail": "bolt"
     }
 
