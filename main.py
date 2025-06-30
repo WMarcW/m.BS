@@ -66,6 +66,8 @@ class VoronoiAgent:
         best_score = -9999
         best_move = safe_moves[0]
 
+        food_in_range = any(abs(self.my_head['x'] - f['x']) + abs(self.my_head['y'] - f['y']) <= 5 for f in self.board['food'])
+
         for move in safe_moves:
             dx, dy = delta[move]
             new_head = {'x': self.my_head['x'] + dx, 'y': self.my_head['y'] + dy}
@@ -82,6 +84,10 @@ class VoronoiAgent:
                 score += flood_score * 2 - enemy_score * 3 + quality
             else:
                 score += flood_score + quality
+                #Zusatz: Loop-Strafe bei viel Raum aber ohne Ziel
+                if flood_score > 30 and not food_in_range:
+                    score -= 10  # kleine Strafe gegen sinnloses Rumfahren
+
 
             if score > best_score:
                 best_score = score
