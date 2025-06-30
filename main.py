@@ -24,6 +24,9 @@ class VoronoiAgent:
 
     def choose_move(self):
         mode = "neutral"
+        if len(self.board['snakes']) == 2 and self.my_length >= len(self.enemy['body']) + 4:
+            mode = "survivor"  # kein Risiko, kein Futter
+
         if self.my_health < 40 or self.my_length <= len(self.enemy['body']):
             mode = "food_hunter"
         elif self.my_length >= len(self.enemy['body']) + 2:
@@ -73,26 +76,33 @@ class VoronoiAgent:
             new_head = {'x': self.my_head['x'] + dx, 'y': self.my_head['y'] + dy}
             flood_score, quality = flood_fill(new_head, self.board, limit=50)
             score = 0
-
+        
             if mode == "food_hunter":
                 dist = closest_food_distance(new_head, self.board['food'])
                 if dist is not None:
                     score += (50 - dist) * 2
                 score += flood_score + quality
+        
+            elif mode == "survivor":
+                enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
+                score += flood_score * 3 - enemy_score * 4 + quality
+                if flood_score > 40:
+                    score -= 5  # vermeide nutzloses Herumfahren
+        
             elif mode == "aggressive":
                 enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
                 score += flood_score * 2 - enemy_score * 3 + quality
+        
             else:
                 score += flood_score + quality
-                #Zusatz: Loop-Strafe bei viel Raum aber ohne Ziel
                 if flood_score > 30 and not food_in_range:
-                    score -= 10  # kleine Strafe gegen sinnloses Rumfahren
-
-
+                    score -= 10  # kleine Strafe gegen sinnloses Herumfahren
+        
             if score > best_score:
                 best_score = score
                 best_move = move
-
+    
+    
         return best_move
 
 # === ERSETZT move() durch Agentennutzung ===
