@@ -10,7 +10,7 @@ delta = {
 }
 
 # === NEU: Agent-Klasse ===
-class SnakeAgent:
+class VoronoiAgent:
     def __init__(self, game_state):
         self.board = game_state['board']
         self.you = game_state['you']
@@ -91,8 +91,9 @@ class SnakeAgent:
 
 # === ERSETZT move() durch Agentennutzung ===
 def move(game_state: typing.Dict) -> typing.Dict:
-    agent = SnakeAgent(game_state)
+    agent = VoronoiAgent(game_state)
     return {"move": agent.choose_move()}
+
 
 # === Bestehende Helferfunktionen bleiben gleich ===
 def detect_dead_end(start, board, snakes, depth_limit=10):
@@ -184,6 +185,8 @@ def closest_food_distance(pos, food_list):
     if not food_list:
         return None
     return min(abs(pos['x'] - f['x']) + abs(pos['y'] - f['y']) for f in food_list)
+
+
 
 def info() -> typing.Dict:
     return {
