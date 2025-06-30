@@ -8,6 +8,49 @@ delta = {
     "left":  (-1, 0),
     "right": (1, 0)
 }
+#funktionenH
+def compute_voronoi(board, you_head, enemy_head):
+
+    width, height = board['width'], board['height']
+    snakes = board['snakes']
+
+    visited = {}
+    q = deque()
+
+    q.append((you_head['x'], you_head['y'], 'you'))
+    q.append((enemy_head['x'], enemy_head['y'], 'enemy'))
+
+    you_score = 0
+    enemy_score = 0
+    neutral_score = 0
+
+    while q:
+        x, y, owner = q.popleft()
+
+        if (x, y) in visited:
+            if visited[(x, y)] != owner and visited[(x, y)] != 'neutral':
+                visited[(x, y)] = 'neutral'
+                neutral_score += 1
+                if visited[(x, y)] == 'you':
+                    you_score -= 1
+                else:
+                    enemy_score -= 1
+            continue
+
+        visited[(x, y)] = owner
+
+        if owner == 'you':
+            you_score += 1
+        elif owner == 'enemy':
+            enemy_score += 1
+
+        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            nx, ny = x + dx, y + dy
+            if (0 <= nx < width and 0 <= ny < height and
+                not is_occupied(nx, ny, snakes) and (nx, ny) not in visited):
+                q.append((nx, ny, owner))
+
+    return you_score, enemy_score, neutral_score
 
 # === NEU: Agent-Klasse ===
 class VoronoiAgent:
@@ -24,13 +67,13 @@ class VoronoiAgent:
 
     def choose_move(self):
         mode = "neutral"
-        if len(self.board['snakes']) == 2 and self.my_length >= len(self.enemy['body']) + 4:
-            mode = "survivor"  # kein Risiko, kein Futter
-
         if self.my_health < 40 or self.my_length <= len(self.enemy['body']):
             mode = "food_hunter"
-        elif self.my_length >= len(self.enemy['body']) + 2:
-            mode = "aggressive"
+        elif self.my_length >= len(self.enemy['body']) + 2 and self.my_health >= 50:
+            you_area, enemy_area, _ = compute_voronoi(self.board, self.my_head, self.enemy['body'][0])
+            if you_area >= enemy_area:
+                mode = "aggressive"
+
 
         safe_moves = []
         for m, (dx, dy) in delta.items():
@@ -58,51 +101,50 @@ class VoronoiAgent:
                 continue
 
             new_head = {'x': new_x, 'y': new_y}
-            if detect_dead_end(new_head, self.board, self.board['snakes']) and not is_tail_reachable(new_head, self.my_tail, self.board, self.board['snakes']):
-                continue
+            if len(safe_moves) > 0:
+                if detect_dead_end(new_head, self.board, self.board['snakes']) and not is_tail_reachable(new_head, self.my_tail, self.board, self.board['snakes']):
+                    continue
+
 
             safe_moves.append(m)
 
         if not safe_moves:
             return "up"
+        if len(safe_moves) == 1:
+            return safe_moves[0]
+
+
 
         best_score = -9999
         best_move = safe_moves[0]
-
-        food_in_range = any(abs(self.my_head['x'] - f['x']) + abs(self.my_head['y'] - f['y']) <= 5 for f in self.board['food'])
 
         for move in safe_moves:
             dx, dy = delta[move]
             new_head = {'x': self.my_head['x'] + dx, 'y': self.my_head['y'] + dy}
             flood_score, quality = flood_fill(new_head, self.board, limit=50)
             score = 0
-        
+
             if mode == "food_hunter":
                 dist = closest_food_distance(new_head, self.board['food'])
                 if dist is not None:
                     score += (50 - dist) * 2
                 score += flood_score + quality
-        
-            elif mode == "survivor":
-                enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
-                score += flood_score * 3 - enemy_score * 4 + quality
-                if flood_score > 40:
-                    score -= 5  # vermeide nutzloses Herumfahren
-        
+
             elif mode == "aggressive":
                 enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
                 score += flood_score * 2 - enemy_score * 3 + quality
-        
+                you_area, enemy_area, _ = compute_voronoi(self.board, new_head, self.enemy['body'][0])
+                score += (you_area - enemy_area)
+
             else:
                 score += flood_score + quality
-                if flood_score > 30 and not food_in_range:
-                    score -= 10  # kleine Strafe gegen sinnloses Herumfahren
-        
+                you_area, enemy_area, _ = compute_voronoi(self.board, new_head, self.enemy['body'][0])
+                score += (you_area - enemy_area)
+
+
             if score > best_score:
                 best_score = score
                 best_move = move
-    
-    
         return best_move
 
 # === ERSETZT move() durch Agentennutzung ===
@@ -208,8 +250,8 @@ def info() -> typing.Dict:
     return {
         "apiversion": "1",
         "author": "flood-fighter",
-        "color": "#1ffd00",
-        "head": "trans-rights-scarf",
+        "color": "#69420",
+        "head": "tiger-king",
         "tail": "bolt"
     }
 
