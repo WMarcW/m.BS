@@ -120,11 +120,15 @@ class VoronoiAgent:
                         head_on_risk = True
                         break
 
-            if head_on_risk:
-                if self.my_length < len(other['body']):
-                    score -= 1000  # Gegner länger → strikt meiden
-                elif self.my_length == len(other['body']):
-                    score -= 500   # Gleichstand → Draw meiden
+                if head_on_risk:
+                    if self.my_length < len(other['body']):
+                        score -= 1000  # Gegner länger → strikt meiden
+                    elif self.my_length == len(other['body']):
+                        # Prüfe, ob es andere sichere Wege gibt
+                        if len(safe_moves) > 1:
+                            score -= 500  # Gleichstand → meiden wenn möglich
+                        else:
+                            score += 0  # Kein anderer Weg → Head-on riskieren
 
             if mode == "food_hunter":
                 dist = closest_food_distance(new_head, self.board['food'])
