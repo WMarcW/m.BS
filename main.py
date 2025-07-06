@@ -101,12 +101,11 @@ class VoronoiAgent:
                 if other['id'] == self.you['id']:
                     continue
                 enemy_head = other['body'][0]
+                head_on_risk = False
                 if abs(enemy_head['x'] - new_x) + abs(enemy_head['y'] - new_y) == 1:
                     if self.my_length <= len(other['body']):
-                        is_risky = True
-                        break
-            if is_risky:
-                continue
+                        head_on_risk = True  # nur markieren, nicht filtern
+
 
 
             new_head = {'x': new_x, 'y': new_y}
@@ -121,58 +120,64 @@ class VoronoiAgent:
             return random.choice(["up", "down", "left", "right"])
         if len(safe_moves) == 1:
             return safe_moves[0]
-        for move in safe_moves:
-            dx, dy = delta[move]
-            nx, ny = self.my_head['x'] + dx, self.my_head['y'] + dy
-            for other in self.board['snakes']:
-                if other['id'] == self.you['id']:
-                    continue
-                enemy_head = other['body'][0]
-                if abs(enemy_head['x'] - nx) + abs(enemy_head['y'] - ny) == 1:
-                    if self.my_length > len(other['body']):
-                        return move
+best_score = -9999
+best_move = safe_moves[0]
+ 
+
+for move in safe_moves:
+    dx, dy = delta[move]
+    new_head = {'x': self.my_head['x'] + dx, 'y': self.my_head['y'] + dy}
+    flood_score, quality = flood_fill(new_head, self.board, limit=50)
+    score = 0
+
+    # === NEU: Head-on-Risiko für diesen Move prüfen ===
+    head_on_risk = False
+    for other in self.board['snakes']:
+        if other['id'] == self.you['id']:
+            continue
+        enemy_head = other['body'][0]
+        if abs(enemy_head['x'] - new_head['x']) + abs(enemy_head['y'] - new_head['y']) == 1:
+            if self.my_length <= len(other['body']):
+                head_on_risk = True
+                break
+
+    # === Head-on-Risiko in Scoring einfließen lassen ===
+    if head_on_risk:
+        if self.my_length < len(other['body']):
+            score -= 1000  # Gegner länger → strikt meiden
+        elif self.my_length == len(other['body']):
+            score -= 500   # Gleichstand → Draw meiden
+
+    # === Restliches Scoring bleibt unverändert ===
+    if mode == "food_hunter":
+        dist = closest_food_distance(new_head, self.board['food'])
+        if dist is not None:
+            score += (50 - dist) * 2
+        score += flood_score + quality
+
+    elif mode == "aggressive":
+        enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
+        score += flood_score * 2 - enemy_score * 3 + quality
+        you_area, enemy_area, _ = compute_voronoi(self.board, new_head, self.enemy['body'][0])
+        score += (you_area - enemy_area)
+
+        if abs(enemy_head['x'] - new_head['x']) + abs(enemy_head['y'] - new_head['y']) == 1:
+            if self.my_length > len(other['body']):
+                score += 1000  # Head-on pushen wenn wir länger sind
+
+    else:
+        score += flood_score + quality
+        score += (self.voronoi_you - self.voronoi_enemy)
+
+    if score > best_score:
+        best_score = score
+        best_move = move
 
 
 
-        best_score = -9999
-        best_move = safe_moves[0]
+        
 
-        for move in safe_moves:
-            dx, dy = delta[move]
-            new_head = {'x': self.my_head['x'] + dx, 'y': self.my_head['y'] + dy}
-            flood_score, quality = flood_fill(new_head, self.board, limit=50)
-            score = 0
-            
-            if mode == "food_hunter":
-                dist = closest_food_distance(new_head, self.board['food'])
-                if dist is not None:
-                    score += (50 - dist) * 2
-                score += flood_score + quality
-
-            elif mode == "aggressive":
-                enemy_score, _ = flood_fill(self.enemy['body'][0], self.board, limit=50)
-                score += flood_score * 2 - enemy_score * 3 + quality
-                you_area, enemy_area, _ = compute_voronoi(self.board, new_head, self.enemy['body'][0])
-                score += (you_area - enemy_area)
-
-
-                for other in self.board['snakes']:
-                    if other['id'] == self.you['id']:
-                        continue
-                    enemy_head = other['body'][0]
-                    if abs(enemy_head['x'] - new_head['x']) + abs(enemy_head['y'] - new_head['y']) == 1:
-                        if self.my_length > len(other['body']):
-                            score += 1000
-            else:
-                score += flood_score + quality
-                score += (self.voronoi_you - self.voronoi_enemy)
-
-
-
-            if score > best_score:
-                best_score = score
-                best_move = move
-        return best_move
+return best_move
 
 def move(game_state: typing.Dict) -> typing.Dict:
     agent = VoronoiAgent(game_state)
